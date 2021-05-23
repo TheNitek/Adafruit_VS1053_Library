@@ -18,11 +18,10 @@
 #endif
 
 #include <SPI.h>
-#if defined(PREFER_SDFAT_LIBRARY)
 #include <SdFat.h>
-extern SdFat SD;
-#else
-#include <SD.h>
+#if defined(ESP8266)
+typedef sdfat::SdFat SdFat;
+typedef sdfat::File32 File32;
 #endif
 
 // define here the size of a register!
@@ -125,7 +124,7 @@ public:
    * @param dreq Data Request pin
    */
   Adafruit_VS1053(int8_t mosi, int8_t miso, int8_t clk, int8_t rst, int8_t cs,
-                  int8_t dcs, int8_t dreq);
+                  int8_t dcs, int8_t dreq, SdFat &sdfat);
   /*!
    * @brief Hardware SPI constructor - assumes hardware SPI pins
    * @param rst Reset pin
@@ -133,7 +132,7 @@ public:
    * @param dcs SDI Chip Select pin
    * @param dreq Data Request pin
    */
-  Adafruit_VS1053(int8_t rst, int8_t cs, int8_t dcs, int8_t dreq);
+  Adafruit_VS1053(int8_t rst, int8_t cs, int8_t dcs, int8_t dreq, SdFat &sdfat);
   /*!
    * @brief Initialize communication and (hard) reset the chip.
    * @return Returns true if a VS1053 is found
@@ -284,13 +283,14 @@ public:
 #ifdef ARDUINO_ARCH_SAMD
 protected:
   uint32_t _dreq;
-
+  SdFat &SD;
 private:
   int32_t _mosi, _miso, _clk, _reset, _cs, _dcs;
   boolean useHardwareSPI;
 #else
 protected:
   uint8_t _dreq; //!< Data request pin
+  SdFat &SD;
 private:
   int8_t _mosi, _miso, _clk, _reset, _cs, _dcs;
   boolean useHardwareSPI;
@@ -315,7 +315,7 @@ public:
    * @param cardCS CS pin for the SD card on the SPI bus
    */
   Adafruit_VS1053_FilePlayer(int8_t mosi, int8_t miso, int8_t clk, int8_t rst,
-                             int8_t cs, int8_t dcs, int8_t dreq, int8_t cardCS);
+                             int8_t cs, int8_t dcs, int8_t dreq, SdFat &sdfat);
   /*!
    * @brief Hardware SPI constructor. Uses Hardware SPI and assumes the default
    * SPI pins
@@ -326,7 +326,7 @@ public:
    * @param cardCS CS pin for the SD card on the SPI bus
    */
   Adafruit_VS1053_FilePlayer(int8_t rst, int8_t cs, int8_t dcs, int8_t dreq,
-                             int8_t cardCS);
+                             SdFat &sdfat);
 
   /*!
    * @brief Hardware SPI constructor. Uses Hardware SPI and assumes the default
@@ -336,7 +336,7 @@ public:
    * @param dreq Data Request pin
    * @param cardCS CS pin for the SD card on the SPI bus
    */
-  Adafruit_VS1053_FilePlayer(int8_t cs, int8_t dcs, int8_t dreq, int8_t cardCS);
+  Adafruit_VS1053_FilePlayer(int8_t cs, int8_t dcs, int8_t dreq, SdFat &sdfat);
 
   /*!
    * @brief Initialize communication and reset the chip.
@@ -350,7 +350,7 @@ public:
    * @return Returs true/false for success/failure
    */
   boolean useInterrupt(uint8_t type);
-  File currentTrack;             //!< File that is currently playing
+  File32 currentTrack;             //!< File that is currently playing
   volatile boolean playingMusic; //!< Whether or not music is playing
   /*!
    * @brief Feeds the buffer. Reads mp3 file data from the SD card and file and
@@ -368,7 +368,7 @@ public:
    * @param mp3 File to read
    * @return returns the seek position within the file where the mp3 data starts
    */
-  unsigned long mp3_ID3Jumper(File mp3);
+  unsigned long mp3_ID3Jumper(File32 mp3);
   /*!
    * @brief Begin playing the specified file from the SD card using
    * interrupt-drive playback.
@@ -402,8 +402,6 @@ public:
 
 private:
   void feedBuffer_noLock(void);
-
-  uint8_t _cardCS;
 };
 
 #endif // ADAFRUIT_VS1053_H

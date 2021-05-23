@@ -42,7 +42,7 @@ SIGNAL(TIMER0_COMPA_vect) { myself->feedBuffer(); }
 volatile boolean feedBufferLock = false; //!< Locks feeding the buffer
 
 #if defined(ESP8266)
-ICACHE_RAM_ATTR
+IRAM_ATTR
 #endif
 static void feeder(void) { myself->feedBuffer(); }
 
@@ -102,38 +102,31 @@ boolean Adafruit_VS1053_FilePlayer::useInterrupt(uint8_t type) {
 
 Adafruit_VS1053_FilePlayer::Adafruit_VS1053_FilePlayer(int8_t rst, int8_t cs,
                                                        int8_t dcs, int8_t dreq,
-                                                       int8_t cardcs)
-    : Adafruit_VS1053(rst, cs, dcs, dreq) {
+                                                       SdFat &sdfat)
+    : Adafruit_VS1053(rst, cs, dcs, dreq, sdfat) {
 
   playingMusic = false;
-  _cardCS = cardcs;
 }
 
 Adafruit_VS1053_FilePlayer::Adafruit_VS1053_FilePlayer(int8_t cs, int8_t dcs,
                                                        int8_t dreq,
-                                                       int8_t cardcs)
-    : Adafruit_VS1053(-1, cs, dcs, dreq) {
+                                                       SdFat &sdfat)
+    : Adafruit_VS1053(-1, cs, dcs, dreq, sdfat) {
 
   playingMusic = false;
-  _cardCS = cardcs;
 }
 
 Adafruit_VS1053_FilePlayer::Adafruit_VS1053_FilePlayer(int8_t mosi, int8_t miso,
                                                        int8_t clk, int8_t rst,
                                                        int8_t cs, int8_t dcs,
                                                        int8_t dreq,
-                                                       int8_t cardcs)
-    : Adafruit_VS1053(mosi, miso, clk, rst, cs, dcs, dreq) {
+                                                       SdFat &sdfat)
+    : Adafruit_VS1053(mosi, miso, clk, rst, cs, dcs, dreq, sdfat) {
 
   playingMusic = false;
-  _cardCS = cardcs;
 }
 
 boolean Adafruit_VS1053_FilePlayer::begin(void) {
-  // Set the card to be disabled while we get the VS1053 up
-  pinMode(_cardCS, OUTPUT);
-  digitalWrite(_cardCS, HIGH);
-
   uint8_t v = Adafruit_VS1053::begin();
 
   // dumpRegs();
@@ -185,7 +178,7 @@ boolean Adafruit_VS1053_FilePlayer::isMP3File(const char *fileName) {
          !strcasecmp(fileName + strlen(fileName) - 4, ".mp3");
 }
 
-unsigned long Adafruit_VS1053_FilePlayer::mp3_ID3Jumper(File mp3) {
+unsigned long Adafruit_VS1053_FilePlayer::mp3_ID3Jumper(File32 mp3) {
 
   char tag[4];
   uint32_t start;
@@ -320,7 +313,7 @@ static PortMask clkpin, misopin, mosipin;
 
 Adafruit_VS1053::Adafruit_VS1053(int8_t mosi, int8_t miso, int8_t clk,
                                  int8_t rst, int8_t cs, int8_t dcs,
-                                 int8_t dreq) {
+                                 int8_t dreq, SdFat &sdfat) : SD(sdfat) {
   _mosi = mosi;
   _miso = miso;
   _clk = clk;
@@ -340,7 +333,7 @@ Adafruit_VS1053::Adafruit_VS1053(int8_t mosi, int8_t miso, int8_t clk,
 }
 
 Adafruit_VS1053::Adafruit_VS1053(int8_t rst, int8_t cs, int8_t dcs,
-                                 int8_t dreq) {
+                                 int8_t dreq, SdFat &sdfat) : SD(sdfat) {
   _mosi = 0;
   _miso = 0;
   _clk = 0;
@@ -382,7 +375,7 @@ void Adafruit_VS1053::applyPatch(const uint16_t *patch, uint16_t patchsize) {
 
 uint16_t Adafruit_VS1053::loadPlugin(char *plugname) {
 
-  File plugin = SD.open(plugname);
+  File32 plugin = SD.open(plugname);
   if (!plugin) {
     Serial.println("Couldn't open the plugin file");
     Serial.println(plugin);
